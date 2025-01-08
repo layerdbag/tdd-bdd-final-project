@@ -35,6 +35,7 @@ DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
 )
 
+logger = logging.getLogger('flask.app')
 
 ######################################################################
 #  P R O D U C T   M O D E L   T E S T   C A S E S
@@ -103,4 +104,77 @@ class TestProductModel(unittest.TestCase):
 
     #
     # ADD YOUR TEST CASES HERE
-    #
+    def test_read_a_product(self):
+        """It should Read a product"""
+        product = ProductFactory()
+        logger.info('Product %s', product)
+        product.id = None
+        product.create()
+        # Assert that it was assigned an id and shows up in the database
+        self.assertIsNotNone(product.id)
+        # Fetch it back
+        found_product = Product.find(product.id)
+        self.assertEqual(found_product.id, product.id)
+        self.assertEqual(found_product.name, product.name)
+        self.assertEqual(found_product.description, product.description)
+        self.assertEqual(found_product.price, product.price)
+        
+    def test_update_a_product(self):
+        """It should Update a product"""
+        product = ProductFactory()
+        logger.info('Product is %s', product)
+        product.id = None
+        product.create()
+        logger.info('Product is created %s', product)
+        self.assertIsNotNone(product.id)
+        # Change it and save it
+        product.description = 'A new description'
+        original_id = product.id
+        product.update()
+        self.assertEqual(product.id, original_id)
+        self.assertEqual(product.description, 'A new description')
+        # Fetch it back
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+        self.assertEqual(products[0].id, original_id)
+        self.assertEqual(products[0].description, 'A new description')
+
+    def test_delete_a_product(self):
+        """It should Delete a product"""
+        product = ProductFactory()
+        logger.info('Product is %s', product)
+        product.id = None
+        product.create()
+        logger.info('Product is created %s', product)
+        self.assertIsNotNone(product.id)
+        self.assertEqual(len(Product.all()), 1)
+        product.delete()
+        self.assertEqual(len(Product.all()), 0)
+
+    def test_list_all_products(self):
+        """It should Retrieve all products"""
+        products = Product.all()
+        self.assertEqual(len(products), 0)
+        # Create 5 Products and save them to the database
+        for _ in range(5):
+            product = ProductFactory()
+            logger.info('Product is %s', product)
+            product.id = None
+            product.create()
+            logger.info('Product is created %s', product)
+        self.assertEqual(len(Product.all()), 5)
+
+    def test_find_by_name(self):
+        """It should find a product by name"""
+        # Create a batch of 5 Products
+        products = ProductFactory.create_batch(5)
+        for product in products:
+            product.create()
+        name = products[0].name
+        count = len([product for product in products if product.name == name])
+        logger.info('Count is %s', count)
+        found = Product.find_by_name(name)
+        logger.info('Found is %s', found.count())
+        self.assertEqual(found.count(), count)
+        for product in found:
+            self.assertEqual(product.name, name)
