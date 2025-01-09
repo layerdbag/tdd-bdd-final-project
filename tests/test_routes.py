@@ -28,10 +28,12 @@ import os
 import logging
 from decimal import Decimal
 from unittest import TestCase
+from urllib.parse import quote_plus
 from service import app
 from service.common import status
 from service.models import db, init_db, Product
 from tests.factories import ProductFactory
+
 
 # Disable all but critical errors during normal test run
 # uncomment for debugging failing tests
@@ -195,6 +197,16 @@ class TestProductRoutes(TestCase):
         data = response.get_json()
         self.assertIn("was not found", data['message'])
 
+    def test_get_product_list(self):
+        """It should Get a list of products"""
+        self._create_products(5)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 5)
+
+
+
     def test_update_product(self):
         """It should update an existing Product"""
         # Create a product to update
@@ -224,24 +236,31 @@ class TestProductRoutes(TestCase):
         self.assertIn("was not found", data['message'])
 
 
-    # def test_delete_product(self):
-    #     """It should delete an existing product"""
-    #     # Create a list of products to delete
-    #     products = self._create_products(5)
-    #     count = self.get_product_count()
-    #     test_product = products[0]
+    def test_delete_product(self):
+        """It should delete an existing product"""
+        # Create a list of products to delete
+        products = self._create_products(5)
+        count = self.get_product_count()
+        test_product = products[0]
 
-    #     # Delete the product
-    #     response = self.client.delete(f"{BASE_URL}/{test_product.id}")
-    #     logging.debug("Test Product: %s", response)
-    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-    #     deleted_product = response.get_json()
-    #     self.assertEqual(deleted_product, {})
-    #     # Confirm deletion
-    #     response = self.client.get(f"{BASE_URL}/{test_product.id}")
-    #     self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-    #     new_count = self.get_product_count()
-    #     self.assertEqual(new_count, count - 1)
+        # Delete the product
+        response = self.client.delete(f"{BASE_URL}/{test_product.id}")
+        logging.debug("Test Product: %s", response)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(response.data), 0)
+        # Confirm deletion
+        response = self.client.get(f"{BASE_URL}/{test_product.id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        new_count = self.get_product_count()
+        self.assertEqual(new_count, count - 1)
 
-
-
+    def test_query_by_name(self):
+        """It should Query Products by name"""
+        products = self._create_products(5)
+        test_name = products[0].name
+        name_count = len([product for product in products if product.name == test_name])
+        logging.debug("Count product: %s", name_count)
+        response = self.client.get(
+            BASE_URL, query_string=f"name={quote_plus(test_name)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OKs
