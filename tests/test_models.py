@@ -190,7 +190,7 @@ class TestProductModel(unittest.TestCase):
         logger.info('Found is %s', found.count())
         self.assertEqual(found.count(), count)
         for product in found:
-            self.assertEqual(product.available, available,
+            self.assertEqual(product.available, available)
 
 
     def test_find_by_category(self):
@@ -205,4 +205,4 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(found.count(), count)
         for product in found:
             self.assertEqual(product.category, category)
- )
+            
